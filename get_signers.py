@@ -311,8 +311,8 @@ def crop_and_trim_ptrack(video_path, p, outfile, fwidth, fheight):
     padding = 10
     x = 2 * (fwidth * x0 - padding) // 2
     y = 2 * (fheight * y0 - padding) // 2
-    w = 2 * (fwidth * (x1 - x0 + 2 * padding)) // 2
-    h = 2 * (fheight * (y1 - y0 + 2 * padding)) // 2
+    w = 2 * (fwidth * (x1 - x0) + 2 * padding) // 2
+    h = 2 * (fheight * (y1 - y0) + 2 * padding) // 2
 
     # Ensure the crop is within the video dimensions
     x = max(0, x)
