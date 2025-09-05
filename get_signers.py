@@ -251,6 +251,8 @@ def get_ptracks(video_path, tracker_model, plot=False):
 
     framenr = 0
 
+    fwidth, fheight = None, None
+
     # Loop through the video frames
     while cap.isOpened():
         # Read a frame from the video
@@ -302,7 +304,7 @@ def get_ptracks(video_path, tracker_model, plot=False):
     return persons, fwidth, fheight
 
 
-def crop_and_trim_ptrack(video_path, p, outfile):
+def crop_and_trim_ptrack(video_path, p, outfile, fwidth, fheight):
     x0, y0, x1, y1 = p["box"]
     # print('person:',i,'box:',x0,y0,x1,y1)
     # Calculate padding and crop dimensions
@@ -346,58 +348,59 @@ def crop_and_trim_ptrack(video_path, p, outfile):
     )
 
 
-# so it begins...
+if __name__ == "__main__":
+    # so it begins...
 
-tracker_model_path = "yolo11n.pt"
-pose_model_path = "yolov8n-pose.pt"
+    tracker_model_path = "yolo11n.pt"
+    pose_model_path = "yolov8n-pose.pt"
 
-# Load the YOLO11 model
-model = YOLO(tracker_model_path)
-pose_model = YOLO(pose_model_path)
+    # Load the YOLO11 model
+    model = YOLO(tracker_model_path)
+    pose_model = YOLO(pose_model_path)
 
-# Open the video file
+    # Open the video file
 
-outdir = "."
-for video_path in sys.argv[1:]:
-    plot = True
-    persons, fwidth, fheight = get_ptracks(video_path, model)
+    outdir = "."
+    for video_path in sys.argv[1:]:
+        plot = True
+        persons, fwidth, fheight = get_ptracks(video_path, model)
 
-    print("- detected", len(persons), "person tracks")
+        print("- detected", len(persons), "person tracks")
 
-    persons = split_tracks_dict(persons)
-    print("- after splitting: ", len(persons), "person tracks")
+        persons = split_tracks_dict(persons)
+        print("- after splitting: ", len(persons), "person tracks")
 
-    persons = filter_ptracks(persons)
-    print("- after filtering: ", len(persons), "person tracks")
+        persons = filter_ptracks(persons)
+        print("- after filtering: ", len(persons), "person tracks")
 
-    tmpdir = "/tmp/get_signers"
-    outdir_signers = "signers"
-    outdir_non_signers = "non_signers"
-    subprocess.run(["mkdir", "-p", tmpdir])
-    subprocess.run(["mkdir", "-p", outdir_signers])
-    subprocess.run(["mkdir", "-p", outdir_non_signers])
+        tmpdir = "/tmp/get_signers"
+        outdir_signers = "signers"
+        outdir_non_signers = "non_signers"
+        subprocess.run(["mkdir", "-p", tmpdir])
+        subprocess.run(["mkdir", "-p", outdir_signers])
+        subprocess.run(["mkdir", "-p", outdir_non_signers])
 
-    # Crop the video to each person track and measure hand motion
+        # Crop the video to each person track and measure hand motion
 
-    for i, p in enumerate(persons):
-        print(f"  ptrack {i}")
-        outname = video_path.split("/")[-1].replace(".mp4", f"_ptrack_{i}.mp4")
-        outfile = tmpdir + "/" + outname
+        for i, p in enumerate(persons):
+            print(f"  ptrack {i}")
+            outname = video_path.split("/")[-1].replace(".mp4", f"_ptrack_{i}.mp4")
+            outfile = tmpdir + "/" + outname
 
-        print("  . cropping and trimming -> ", outfile)
+            print("  . cropping and trimming -> ", outfile)
 
-        crop_and_trim_ptrack(video_path, p, outfile)
+            crop_and_trim_ptrack(video_path, p, outfile, fwidth, fheight)
 
-        motion, motion_total, frames_used, frames_with_hands = measure_hand_motion(
-            video_path=outfile, model=pose_model, stride=30
-        )
+            motion, motion_total, frames_used, frames_with_hands = measure_hand_motion(
+                video_path=outfile, model=pose_model, stride=30
+            )
 
-        motion_thresh = 0.1  # threshold for distinguishing signer from non-signer
-        if motion < 0.1:
-            print(f"  . hand motion: {motion:.2f} < {motion_thresh}")
-            print(f"    -> {outdir_non_signers}")
-            subprocess.run(["mv", outfile, outdir_non_signers])
-        else:
-            print(f"  . hand motion: {motion:.2f} >= {motion_thresh}")
-            print(f"    -> {outdir_signers}")
-            subprocess.run(["mv", outfile, outdir_signers])
+            motion_thresh = 0.1  # threshold for distinguishing signer from non-signer
+            if motion < 0.1:
+                print(f"  . hand motion: {motion:.2f} < {motion_thresh}")
+                print(f"    -> {outdir_non_signers}")
+                subprocess.run(["mv", outfile, outdir_non_signers])
+            else:
+                print(f"  . hand motion: {motion:.2f} >= {motion_thresh}")
+                print(f"    -> {outdir_signers}")
+                subprocess.run(["mv", outfile, outdir_signers])
