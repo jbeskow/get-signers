@@ -374,17 +374,20 @@ if __name__ == "__main__":
         print("- after filtering: ", len(persons), "person tracks")
 
         tmpdir = "/tmp/get_signers"
-        outdir_signers = "signers"
-        outdir_non_signers = "non_signers"
+        outdir_signers = "signers" + "/" + video_path.split("/")[-1].replace(".mp4", "")
+        outdir_non_signers = (
+            "non_signers" + "/" + video_path.split("/")[-1].replace(".mp4", "")
+        )
         subprocess.run(["mkdir", "-p", tmpdir])
         subprocess.run(["mkdir", "-p", outdir_signers])
         subprocess.run(["mkdir", "-p", outdir_non_signers])
 
         # Crop the video to each person track and measure hand motion
 
+        motion_thresh = 0.1  # threshold for distinguishing signer from non-signer
         for i, p in enumerate(persons):
             print(f"  ptrack {i}")
-            outname = video_path.split("/")[-1].replace(".mp4", f"_ptrack_{i}.mp4")
+            outname = f"ptrack_{i}.mp4"
             outfile = tmpdir + "/" + outname
 
             print("  . cropping and trimming -> ", outfile)
@@ -395,7 +398,6 @@ if __name__ == "__main__":
                 video_path=outfile, model=pose_model, stride=30
             )
 
-            motion_thresh = 0.1  # threshold for distinguishing signer from non-signer
             if motion < 0.1:
                 print(f"  . hand motion: {motion:.2f} < {motion_thresh}")
                 print(f"    -> {outdir_non_signers}")
