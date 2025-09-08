@@ -363,7 +363,7 @@ if __name__ == "__main__":
     outdir = "."
     for video_path in sys.argv[1:]:
         plot = True
-        persons, fwidth, fheight = get_ptracks(video_path, model)
+        persons, fwidth, fheight = get_ptracks(video_path, model, plot)
 
         print("- detected", len(persons), "person tracks")
 
